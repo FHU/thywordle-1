@@ -19,7 +19,12 @@ function Profile() {
         </h1>
         {isSignedIn() ? (
           <div>
-            <button onClick={signOutOfGoogle}>LogOut</button>
+            <button
+              onClick={signOutOfGoogle}
+              className="rounded-md bg-slate-200 p-4"
+            >
+              Log Out
+            </button>
             <div className="my-12">
               <h1 className="text-black dark:text-white">{signedInName}</h1>
               <h2 className="text-black dark:text-white">{signedInEmail}</h2>
@@ -35,7 +40,12 @@ function Profile() {
             </div>
           </div>
         ) : (
-          <button onClick={signInWithGoogle}>Sign in with Google</button>
+          <button
+            onClick={signInWithGoogle}
+            className="rounded-md bg-slate-200 p-4"
+          >
+            Sign in with Google
+          </button>
         )}
       </div>
     </div>
