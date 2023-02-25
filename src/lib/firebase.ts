@@ -1,4 +1,3 @@
-// import { getAnalytics } from 'firebase/analytics'
 import { initializeApp } from 'firebase/app'
 import {
   GoogleAuthProvider,
@@ -6,6 +5,14 @@ import {
   signInWithPopup,
   signOut,
 } from 'firebase/auth'
+import {
+  addDoc,
+  collection,
+  getDocs,
+  getFirestore,
+  query,
+  where,
+} from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyBQPySpHC-d01WUWhj9F5JKLUJI3Z6CAng',
@@ -18,62 +25,31 @@ const firebaseConfig = {
 }
 
 const app = initializeApp(firebaseConfig)
-// const analytics = getAnalytics(app)
 export const auth = getAuth(app)
+export const db = getFirestore(app)
+const googleProvider = new GoogleAuthProvider()
 
-const provider = new GoogleAuthProvider()
-
-export const isSignedIn = (): boolean => {
-  return (
-    localStorage.getItem('name') !== null &&
-    localStorage.getItem('email') !== null &&
-    localStorage.getItem('userImg') !== null
-  )
+export const signInWithGoogle = async () => {
+  try {
+    const res = await signInWithPopup(auth, googleProvider)
+    const user = res.user
+    const q = query(collection(db, 'users'), where('uid', '==', user.uid))
+    const docs = await getDocs(q)
+    if (docs.docs.length === 0) {
+      await addDoc(collection(db, 'users'), {
+        uid: user.uid,
+        name: user.displayName,
+        authProvider: 'google',
+        email: user.email,
+        photoUrl: user.photoURL,
+      })
+    }
+  } catch (err) {
+    console.error(err)
+    alert(err.message)
+  }
 }
 
-export const signInWithGoogle = () => {
-  signInWithPopup(auth, provider)
-    .then((result) => {
-      // This gives you a Google Access Token. You can use it to access the Google API.
-      const credential = GoogleAuthProvider.credentialFromResult(result)
-      const token = credential?.accessToken
-      console.log(token)
-      // The signed-in user info.
-      const user = result.user
-      // IdP data available using getAdditionalUserInfo(result)
-      const name = user.displayName
-      const email = user.email
-      const userImg = user.photoURL
-
-      localStorage.setItem('name', name!)
-      localStorage.setItem('email', email!)
-      localStorage.setItem('userImg', userImg!)
-
-      window.location.reload()
-    })
-    .catch((error) => {
-      // Handle Errors here.
-      const errorCode = error.code
-      const errorMessage = error.message
-      // The email of the user's account used.
-      const email = error.customData.email
-      // The AuthCredential type that was used.
-      const credential = GoogleAuthProvider.credentialFromError(error)
-      // ...
-      console.log(errorCode, errorMessage, email, credential)
-    })
-}
-
-export const signOutOfGoogle = () => {
+export const logout = () => {
   signOut(auth)
-    .then(() => {
-      localStorage.removeItem('name')
-      localStorage.removeItem('email')
-      localStorage.removeItem('userImg')
-
-      window.location.reload()
-    })
-    .catch((error) => {
-      // An error happened.
-    })
 }
