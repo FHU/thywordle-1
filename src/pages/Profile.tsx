@@ -1,8 +1,16 @@
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { addDoc, collection, getDocs, query, where } from 'firebase/firestore'
 import React, { useEffect, useState } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 
-import { auth, db, logout, signInWithGoogle } from './../lib/firebase'
+import {
+  auth,
+  db,
+  logout,
+  signInWithGoogle,
+  singInWithApple,
+  singInWithFacebook,
+} from './../lib/firebase'
+import { loadStats } from './../lib/stats'
 
 function Profile() {
   const [user, loading] = useAuthState(auth)
@@ -32,6 +40,28 @@ function Profile() {
     } catch (err) {
       console.error(err)
       alert('An error occured while fetching user data')
+    }
+  }
+
+  const saveStats = async () => {
+    try {
+      const stats = loadStats()
+      const q = query(collection(db, 'stats'), where('uid', '==', user?.uid))
+      const docs = await getDocs(q)
+      if (docs.docs.length === 0) {
+        await addDoc(collection(db, 'stats'), {
+          uid: user?.uid,
+          bestSteak: stats.bestStreak,
+          currentSteak: stats.currentStreak,
+          gamesFailed: stats.gamesFailed,
+          successRate: stats.successRate,
+          totalGames: stats.totalGames,
+          winDistribution: stats.winDistribution,
+        })
+      }
+    } catch (err) {
+      console.error(err)
+      alert(err.message)
     }
   }
 
@@ -67,12 +97,20 @@ function Profile() {
 
             <div className="flex flex-col">
               {user ? (
-                <button
-                  onClick={logout}
-                  className="my-2 mx-auto w-48 rounded-md bg-slate-200 p-4"
-                >
-                  Log Out
-                </button>
+                <>
+                  <button
+                    onClick={saveStats}
+                    className="my-2 mx-auto w-48 rounded-md bg-slate-200 p-4"
+                  >
+                    Save my Stats
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="my-2 mx-auto w-48 rounded-md bg-slate-200 p-4"
+                  >
+                    Log Out
+                  </button>
+                </>
               ) : (
                 <>
                   <button
@@ -80,6 +118,18 @@ function Profile() {
                     className="my-2 mx-auto w-48 rounded-md bg-slate-200 p-4"
                   >
                     Sign in with Google
+                  </button>
+                  <button
+                    onClick={singInWithFacebook}
+                    className="my-2 mx-auto w-48 rounded-md bg-slate-200 p-4"
+                  >
+                    Sign in with Facebook
+                  </button>
+                  <button
+                    onClick={singInWithApple}
+                    className="my-2 mx-auto w-48 rounded-md bg-slate-200 p-4"
+                  >
+                    Sign in with Apple
                   </button>
                 </>
               )}

@@ -50,6 +50,14 @@ export const signInWithGoogle = async () => {
   }
 }
 
+export const singInWithFacebook = async () => {
+  alert('Sign in with Facebook')
+}
+
+export const singInWithApple = async () => {
+  alert('Sign in with Apple')
+}
+
 export const logout = () => {
   signOut(auth)
 }
