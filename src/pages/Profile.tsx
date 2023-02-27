@@ -1,7 +1,15 @@
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore'
+import {
+  DocumentData,
+  addDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+} from 'firebase/firestore'
 import React, { useEffect, useState } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 
+import { StatBar } from './../components/stats/StatBar'
 import {
   auth,
   db,
@@ -10,6 +18,7 @@ import {
   singInWithApple,
   singInWithFacebook,
 } from './../lib/firebase'
+import { GameStats } from './../lib/localStorage'
 import { loadStats } from './../lib/stats'
 
 function Profile() {
@@ -17,6 +26,7 @@ function Profile() {
   const [userName, setUserName] = useState('')
   const [userEmail, setUserEmail] = useState('')
   const [userPhotoUrl, setUserPhotoUrl] = useState('')
+  const [gameStats, setGameStats] = useState<GameStats>()
 
   useEffect(() => {
     if (loading) {
@@ -37,17 +47,20 @@ function Profile() {
       setUserName(data.name)
       setUserEmail(data.email)
       setUserPhotoUrl(data.photoUrl)
-    } catch (err) {
-      console.error(err)
+    } catch (error) {
+      console.error(error)
       alert('An error occured while fetching user data')
     }
   }
 
-  const saveStats = async () => {
+  const saveAndDisplayStats = async () => {
     try {
       const stats = loadStats()
+      // get a stats instance for signed in user id
       const q = query(collection(db, 'stats'), where('uid', '==', user?.uid))
       const docs = await getDocs(q)
+
+      // if no stat instance exists, save current game stats from local storage to firestore
       if (docs.docs.length === 0) {
         await addDoc(collection(db, 'stats'), {
           uid: user?.uid,
@@ -59,10 +72,26 @@ function Profile() {
           winDistribution: stats.winDistribution,
         })
       }
+
+      // display user stats from firestore
+      const displayStats = await getDocs(q)
+      generateStatsDisplay(displayStats.docs[0].data())
     } catch (err) {
       console.error(err)
-      alert(err.message)
     }
+  }
+
+  function generateStatsDisplay(stats: DocumentData) {
+    const displayStats: GameStats = {
+      winDistribution: stats.winDistribution,
+      gamesFailed: stats.gamesFailed,
+      currentStreak: stats.currentStreak,
+      bestStreak: stats.bestStreak,
+      totalGames: stats.totalGames,
+      successRate: stats.successRate,
+    }
+
+    setGameStats(displayStats)
   }
 
   const isLoading = (
@@ -80,7 +109,7 @@ function Profile() {
           isLoading
         ) : (
           <>
-            {user ? (
+            {user && (
               <>
                 <h1 className="text-black dark:text-white">{userName}</h1>
                 <h2 className="text-black dark:text-white">{userEmail}</h2>
@@ -91,18 +120,18 @@ function Profile() {
                   alt="signedInUserImg"
                 />
               </>
-            ) : (
-              <></>
             )}
+
+            {gameStats && <StatBar gameStats={gameStats} />}
 
             <div className="flex flex-col">
               {user ? (
                 <>
                   <button
-                    onClick={saveStats}
+                    onClick={saveAndDisplayStats}
                     className="my-2 mx-auto w-48 rounded-md bg-slate-200 p-4"
                   >
-                    Save my Stats
+                    Show my Stats
                   </button>
                   <button
                     onClick={logout}
